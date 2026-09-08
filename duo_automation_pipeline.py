@@ -4,13 +4,13 @@ import time
 import random
 import duo_client
 
-# Load Cisco Duo Admin API credentials from GitHub Secrets / Environment
+# Updated to match DUO_HOST secret name from GitHub
 DUO_IKEY = os.environ.get("DUO_IKEY")
 DUO_SKEY = os.environ.get("DUO_SKEY")
-DUO_API_HOST = os.environ.get("DUO_API_HOST")
+DUO_API_HOST = os.environ.get("DUO_HOST")  # Changed from DUO_API_HOST
 
 if not all([DUO_IKEY, DUO_SKEY, DUO_API_HOST]):
-    print("Error: Missing required environment variables (DUO_IKEY, DUO_SKEY, DUO_API_HOST)")
+    print("Error: Missing required environment variables (DUO_IKEY, DUO_SKEY, DUO_HOST)")
     sys.exit(1)
 
 # Initialize Duo Admin Client
@@ -28,7 +28,7 @@ def generate_duo_events():
 
     print(f"[{timestamp}] Starting Cisco Duo Event Generation Pipeline...")
 
-    # 1. CREATE USER & GROUP (Triggers User & Group Management Events)
+    # 1. CREATE USER & GROUP
     print(f"\n[1/3] Creating User '{username}' and Group '{group_name}'...")
     try:
         user = admin_api.add_user(username=username, realname=f"Test User {random_id}")
@@ -39,7 +39,6 @@ def generate_duo_events():
         group_id = group["group_id"]
         print(f"  -> Created Group ID: {group_id}")
 
-        # Associate User with Group
         admin_api.add_user_group(user_id=user_id, group_id=group_id)
         print(f"  -> Associated User {user_id} with Group {group_id}")
     except Exception as e:
@@ -48,10 +47,9 @@ def generate_duo_events():
 
     time.sleep(2)
 
-    # 2. TRIGGER ADMIN LOG (Updating User Attributes)
+    # 2. TRIGGER ADMIN LOG
     print("\n[2/3] Triggering Administrator Activity Log...")
     try:
-        # Updating user details generates an Admin Audit Log event
         admin_api.update_user(user_id=user_id, notes="Automated test log event update - User Retained")
         print("  -> User updated successfully (Admin Log Event Generated)")
     except Exception as e:
@@ -60,7 +58,6 @@ def generate_duo_events():
     # 3. TRIGGER TELEPHONY & AUTHENTICATION LOG ATTEMPTS
     print("\n[3/3] Triggering Telephony & Auth Verification Checks...")
     try:
-        # Fetching user bypass codes triggers an Auth/Security Audit Event
         bypass_codes = admin_api.get_user_bypass_codes(user_id=user_id)
         print(f"  -> Checked bypass code status for User {user_id} (Auth/Security Audit Event Generated)")
     except Exception as e:
