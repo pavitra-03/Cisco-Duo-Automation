@@ -1,0 +1,53 @@
+name: Duo Automation Pipeline
+
+on:
+  schedule:
+    # Runs every 3 hours (At minute 0 past every 3rd hour)
+    - cron: '0 */3 * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub UI
+
+jobs:
+  execute-duo-pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
+
+      - name: Restore Last Run Timestamp
+        uses: actions/cache/restore@v4
+        with:
+          path: last_run.json
+          key: duo-last-run-timestamp
+
+      - name: Run Duo Master Script
+        env:
+          DUO_IKEY: ${{ secrets.DUO_IKEY }}
+          DUO_SKEY: ${{ secrets.DUO_SKEY }}
+          DUO_HOST: ${{ secrets.DUO_HOST }}
+        run: python duo_pipeline.py
+
+      - name: Save Last Run Timestamp
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: last_run.json
+          key: duo-last-run-timestamp-${{ github.run_id }}
+
+      - name: Upload JSON Logs as Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: duo-logs-${{ github.run_id }}
+          path: logs_output/
+          retention-days: 7
