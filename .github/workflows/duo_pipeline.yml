@@ -1,13 +1,12 @@
-name: Duo Automation & Log Generation Pipeline
+name: Cisco Duo Automation Pipeline
 
 on:
   schedule:
-    # Runs automatically every 3 hours (At minute 0 past every 3rd hour)
-    - cron: '0 */3 * * *'
-  workflow_dispatch: # Allows manual pipeline triggering from the GitHub Actions UI
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
 
 jobs:
-  execute-duo-pipeline:
+  run-duo-script:
     runs-on: ubuntu-latest
 
     steps:
@@ -17,38 +16,18 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.x'
 
+      # FIX: Install required Duo Python SDK dependency
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install requests
+          pip install duo-client
 
-      - name: Restore Last Run Timestamp State
-        uses: actions/cache/restore@v4
-        with:
-          path: last_run.json
-          key: duo-last-run-timestamp
-
-      - name: Run Duo Script & Generate Logs
+      - name: Execute Duo Automation Pipeline
         env:
           DUO_IKEY: ${{ secrets.DUO_IKEY }}
           DUO_SKEY: ${{ secrets.DUO_SKEY }}
-          DUO_HOST: ${{ secrets.DUO_HOST }}
-          TEST_PHONE_NUMBER: ${{ secrets.TEST_PHONE_NUMBER }} # Optional: defaults to +15550199999 if not set
-        run: python duo_automation_pipeline.py
-
-      - name: Save Updated State File
-        uses: actions/cache/save@v4
-        if: always()
-        with:
-          path: last_run.json
-          key: duo-last-run-timestamp-${{ github.run_id }}
-
-      - name: Upload Generated JSON Logs as Artifacts
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: duo-json-logs-${{ github.run_id }}
-          path: "*.json"
-          retention-days: 7
+          DUO_API_HOST: ${{ secrets.DUO_API_HOST }}
+        run: |
+          python duo_automation_pipeline.py
