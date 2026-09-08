@@ -26,10 +26,10 @@ def generate_duo_events():
     group_name = f"Test_Group_{random_id}"
     timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
 
-    print(f"[{timestamp}] Starting Cisco Duo Log Generation Pipeline...")
+    print(f"[{timestamp}] Starting Cisco Duo Event Generation Pipeline...")
 
     # 1. CREATE USER & GROUP (Triggers User & Group Management Events)
-    print(f"\n[1/4] Creating User '{username}' and Group '{group_name}'...")
+    print(f"\n[1/3] Creating User '{username}' and Group '{group_name}'...")
     try:
         user = admin_api.add_user(username=username, realname=f"Test User {random_id}")
         user_id = user["user_id"]
@@ -48,39 +48,25 @@ def generate_duo_events():
 
     time.sleep(2)
 
-    # 2. TRIGGER ADMIN LOG (Modifying User Attributes)
-    print("\n[2/4] Triggering Administrator Activity Log...")
+    # 2. TRIGGER ADMIN LOG (Updating User Attributes)
+    print("\n[2/3] Triggering Administrator Activity Log...")
     try:
         # Updating user details generates an Admin Audit Log event
-        admin_api.update_user(user_id=user_id, notes="Automated test log event update")
+        admin_api.update_user(user_id=user_id, notes="Automated test log event update - User Retained")
         print("  -> User updated successfully (Admin Log Event Generated)")
     except Exception as e:
         print(f"  -> Error generating Admin Log event: {str(e)}")
 
     # 3. TRIGGER TELEPHONY & AUTHENTICATION LOG ATTEMPTS
-    print("\n[3/4] Triggering Telephony & Auth Verification Checks...")
+    print("\n[3/3] Triggering Telephony & Auth Verification Checks...")
     try:
-        # Check bypass codes or phone association (triggers telephony/auth log engine entries)
+        # Fetching user bypass codes triggers an Auth/Security Audit Event
         bypass_codes = admin_api.get_user_bypass_codes(user_id=user_id)
         print(f"  -> Checked bypass code status for User {user_id} (Auth/Security Audit Event Generated)")
     except Exception as e:
         print(f"  -> Error triggering Auth/Telephony event: {str(e)}")
 
-    time.sleep(2)
-
-    # 4. CLEANUP (Deletes temporary user and group, generating deletion logs)
-    print("\n[4/4] Cleaning Up Temporary Resources...")
-    try:
-        admin_api.delete_user(user_id=user_id)
-        print(f"  -> Deleted User ID: {user_id}")
-
-        admin_api.delete_group(group_id=group_id)
-        print(f"  -> Deleted Group ID: {group_id}")
-        print("  -> Cleanup complete (Deletion events generated).")
-    except Exception as e:
-        print(f"  -> Error during cleanup: {str(e)}")
-
-    print("\nPipeline execution completed. Check Cisco Duo Admin Console for generated logs.")
+    print("\nPipeline execution completed. User and Group have been retained in Cisco Duo.")
 
 if __name__ == "__main__":
     generate_duo_events()
