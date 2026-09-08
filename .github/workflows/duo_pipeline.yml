@@ -6,25 +6,24 @@ on:
   workflow_dispatch:
 
 jobs:
-  run-duo-script:
+  run-duo-automation:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout Repository Code
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python Environment
         uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
+          python-version: '3.11'
 
-      # FIX: Install required Duo Python SDK dependency
-      - name: Install Dependencies
+      - name: Install Duo SDK
         run: |
           python -m pip install --upgrade pip
           pip install duo-client
 
-      - name: Execute Duo Automation Pipeline
+      - name: Run Cisco Duo Automation Pipeline
         env:
           DUO_IKEY: ${{ secrets.DUO_IKEY }}
           DUO_SKEY: ${{ secrets.DUO_SKEY }}
