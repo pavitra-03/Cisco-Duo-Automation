@@ -1,17 +1,17 @@
-name: Duo Automation Pipeline
+name: Duo Automation & Log Generation Pipeline
 
 on:
   schedule:
-    # Runs every 3 hours (At minute 0 past every 3rd hour)
+    # Runs automatically every 3 hours (At minute 0 past every 3rd hour)
     - cron: '0 */3 * * *'
-  workflow_dispatch: # Allows manual trigger from GitHub UI
+  workflow_dispatch: # Allows manual pipeline triggering from the GitHub Actions UI
 
 jobs:
   execute-duo-pipeline:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -19,35 +19,36 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
           pip install requests
 
-      - name: Restore Last Run Timestamp
+      - name: Restore Last Run Timestamp State
         uses: actions/cache/restore@v4
         with:
           path: last_run.json
           key: duo-last-run-timestamp
 
-      - name: Run Duo Master Script
+      - name: Run Duo Script & Generate Logs
         env:
           DUO_IKEY: ${{ secrets.DUO_IKEY }}
           DUO_SKEY: ${{ secrets.DUO_SKEY }}
           DUO_HOST: ${{ secrets.DUO_HOST }}
-        run: python duo_pipeline.py
+          TEST_PHONE_NUMBER: ${{ secrets.TEST_PHONE_NUMBER }} # Optional: defaults to +15550199999 if not set
+        run: python duo_automation_pipeline.py
 
-      - name: Save Last Run Timestamp
+      - name: Save Updated State File
         uses: actions/cache/save@v4
         if: always()
         with:
           path: last_run.json
           key: duo-last-run-timestamp-${{ github.run_id }}
 
-      - name: Upload JSON Logs as Artifacts
+      - name: Upload Generated JSON Logs as Artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: duo-logs-${{ github.run_id }}
-          path: logs_output/
+          name: duo-json-logs-${{ github.run_id }}
+          path: "*.json"
           retention-days: 7
